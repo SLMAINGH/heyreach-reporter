@@ -279,7 +279,6 @@
         const handleCheckApiKey = async () => {
             const key = apiKeyInput.value.trim();
             if (!key) return showApiStatus('Proszę wprowadzić klucz API.', false);
-            if (PROXY_URL === 'https://shy-meadow-dba0.lammelstanislaw.workers.dev/') return showApiStatus('Proszę najpierw ustawić adres PROXY_URL w kodzie.', false);
 
             showLoader();
             apiStatusDiv.textContent = '';
