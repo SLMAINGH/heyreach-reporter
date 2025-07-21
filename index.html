@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HeyReach API Dashboard v2.3</title>
+    <title>HeyReach API Dashboard v2.4</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -152,7 +152,7 @@
 <body>
 
     <div class="container">
-        <h1>📊 HeyReach API Dashboard v2.3</h1>
+        <h1>📊 HeyReach API Dashboard v2.4</h1>
 
         <div class="step">
             <div class="step-header"><div class="step-number">0</div><div>Podaj klucz API</div></div>
@@ -214,6 +214,7 @@
     <script>
         const { jsPDF } = window.jspdf;
 
+        // Elementy DOM
         const apiKeyInput = document.getElementById('api-key');
         const checkApiKeyBtn = document.getElementById('check-api-key');
         const apiStatusDiv = document.getElementById('api-status');
@@ -231,8 +232,12 @@
         const savePdfBtn = document.getElementById('save-pdf');
         const loader = document.getElementById('loader');
         
-        // Adres serwera pośredniczącego
-        const PROXY_URL = 'https://proxy.cors.sh/';
+        // ====================================================================
+        // KROK 1: Wklej tutaj adres swojego workera z Cloudflare
+        // Pamiętaj o ukośniku "/" na końcu!
+        // Przykład: 'https://my-worker.username.workers.dev/'
+        // ====================================================================
+        const PROXY_URL = 'https://shy-meadow-dba0.lammelstanislaw.workers.dev/';
 
         let verifiedApiKey = null;
         let allAccounts = [];
@@ -253,8 +258,8 @@
                 options.body = JSON.stringify(body);
             }
 
-            // *** OSTATECZNA POPRAWKA: Dodanie proxy do każdego zapytania ***
-            const response = await fetch(`${PROXY_URL}https://api.heyreach.io/api/public/${endpoint}`, options);
+            // Poprawna składnia z użyciem Twojego prywatnego proxy
+            const response = await fetch(`${PROXY_URL}${endpoint}`, options);
 
             if (!response.ok) {
                 let errorText = '';
@@ -274,14 +279,15 @@
         const handleCheckApiKey = async () => {
             const key = apiKeyInput.value.trim();
             if (!key) return showApiStatus('Proszę wprowadzić klucz API.', false);
-            
+            if (PROXY_URL === 'https://shy-meadow-dba0.lammelstanislaw.workers.dev/') return showApiStatus('Proszę najpierw ustawić adres PROXY_URL w kodzie.', false);
+
             showLoader();
             apiStatusDiv.textContent = '';
             verifiedApiKey = key;
 
             try {
-                // Używamy proxy również tutaj
-                const response = await fetch(`${PROXY_URL}https://api.heyreach.io/api/public/auth/CheckApiKey`, { headers: { 'X-API-KEY': key } });
+                 // Poprawna składnia z użyciem Twojego prywatnego proxy
+                const response = await fetch(`${PROXY_URL}api/public/auth/CheckApiKey`, { headers: { 'X-API-KEY': key } });
                 if (!response.ok) throw new Error('Nieprawidłowy klucz API lub błąd sieci.');
 
                 localStorage.setItem('heyreach_api_key', key);
@@ -304,7 +310,7 @@
 
         const handleFetchAccounts = async () => {
             try {
-                const data = await apiCall('li_account/GetAll', 'POST', { offset: 0, limit: 100 });
+                const data = await apiCall('api/public/li_account/GetAll', 'POST', { offset: 0, limit: 100 });
                 allAccounts = data.items || [];
                 filterAccountSelect.innerHTML = '<option value="">Wszystkie konta</option>';
                 allAccounts.forEach(acc => {
@@ -332,7 +338,7 @@
                     statuses: status ? [status] : []
                 };
                 
-                const data = await apiCall('campaign/GetAll', 'POST', payload);
+                const data = await apiCall('api/public/campaign/GetAll', 'POST', payload);
                 campaignSelect.innerHTML = (data.items && data.items.length > 0) 
                     ? '<option value="">-- Wybierz kampanię --</option>' 
                     : '<option value="">Nie znaleziono kampanii dla filtrów</option>';
@@ -370,7 +376,7 @@
             const payload = { campaignId, linkedInAccountId, periodStart: startDateInput.value, periodEnd: endDateInput.value };
 
             try {
-                const reportData = await apiCall('stats/GetCampaignStats', 'POST', payload);
+                const reportData = await apiCall('api/public/stats/GetCampaignStats', 'POST', payload);
                 displayReport({ ...reportData, linkedInAccountId });
             } catch (error) {
                 console.error("Błąd generowania raportu:", error);
@@ -439,7 +445,9 @@
             const savedKey = localStorage.getItem('heyreach_api_key');
             if (savedKey) {
                 apiKeyInput.value = savedKey;
-                handleCheckApiKey();
+                if (PROXY_URL !== 'https://shy-meadow-dba0.lammelstanislaw.workers.dev/') {
+                    handleCheckApiKey();
+                }
             }
             const today = new Date();
             const thirtyDaysAgo = new Date();
