@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HeyReach API Dashboard v2.4</title>
+    <title>HeyReach API Dashboard v2.5</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -152,7 +152,7 @@
 <body>
 
     <div class="container">
-        <h1>📊 HeyReach API Dashboard v2.4</h1>
+        <h1>📊 HeyReach API Dashboard v2.5</h1>
 
         <div class="step">
             <div class="step-header"><div class="step-number">0</div><div>Podaj klucz API</div></div>
@@ -237,7 +237,7 @@
         // Pamiętaj o ukośniku "/" na końcu!
         // Przykład: 'https://my-worker.username.workers.dev/'
         // ====================================================================
-        const PROXY_URL = 'https://shy-meadow-dba0.lammelstanislaw.workers.dev/';
+        const PROXY_URL = 'Wklej_TUTAJ_SWOJ_ADRES_WORKERA/';
 
         let verifiedApiKey = null;
         let allAccounts = [];
@@ -258,7 +258,6 @@
                 options.body = JSON.stringify(body);
             }
 
-            // Poprawna składnia z użyciem Twojego prywatnego proxy
             const response = await fetch(`${PROXY_URL}${endpoint}`, options);
 
             if (!response.ok) {
@@ -279,13 +278,13 @@
         const handleCheckApiKey = async () => {
             const key = apiKeyInput.value.trim();
             if (!key) return showApiStatus('Proszę wprowadzić klucz API.', false);
+            if (PROXY_URL === 'Wklej_TUTAJ_SWOJ_ADRES_WORKERA/') return showApiStatus('Proszę najpierw ustawić adres PROXY_URL w kodzie.', false);
 
             showLoader();
             apiStatusDiv.textContent = '';
             verifiedApiKey = key;
 
             try {
-                 // Poprawna składnia z użyciem Twojego prywatnego proxy
                 const response = await fetch(`${PROXY_URL}api/public/auth/CheckApiKey`, { headers: { 'X-API-KEY': key } });
                 if (!response.ok) throw new Error('Nieprawidłowy klucz API lub błąd sieci.');
 
@@ -332,7 +331,8 @@
                 const status = filterStatusSelect.value;
                 const payload = {
                     offset: 0,
-                    limit: 200,
+                    // *** POPRAWKA: Zmiana limitu z 200 na 100 ***
+                    limit: 100,
                     accountIds: accountId ? [parseInt(accountId)] : [],
                     statuses: status ? [status] : []
                 };
@@ -444,7 +444,7 @@
             const savedKey = localStorage.getItem('heyreach_api_key');
             if (savedKey) {
                 apiKeyInput.value = savedKey;
-                if (PROXY_URL !== 'https://shy-meadow-dba0.lammelstanislaw.workers.dev/') {
+                if (PROXY_URL !== 'Wklej_TUTAJ_SWOJ_ADRES_WORKERA/') {
                     handleCheckApiKey();
                 }
             }
