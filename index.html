@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HeyReach API Dashboard v2.6</title>
+    <title>HeyReach API Dashboard v2.7</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -152,7 +152,7 @@
 <body>
 
     <div class="container">
-        <h1>📊 HeyReach API Dashboard v2.6</h1>
+        <h1>📊 HeyReach API Dashboard v2.7</h1>
 
         <div class="step">
             <div class="step-header"><div class="step-number">0</div><div>Podaj klucz API</div></div>
@@ -214,6 +214,7 @@
     <script>
         const { jsPDF } = window.jspdf;
 
+        // Elementy DOM
         const apiKeyInput = document.getElementById('api-key');
         const checkApiKeyBtn = document.getElementById('check-api-key');
         const apiStatusDiv = document.getElementById('api-status');
@@ -233,7 +234,7 @@
         
         // ====================================================================
         // Wklej tutaj adres swojego workera z Cloudflare. Zastąp cały ten tekst.
-        // Przykład: 'https://shy-meadow-dba0.lammelstanislaw.workers.dev/'
+        // Przykład: 'https://twoj-worker.twoj-login.workers.dev/'
         // ====================================================================
         const PROXY_URL = 'https://shy-meadow-dba0.lammelstanislaw.workers.dev/';
 
@@ -249,7 +250,15 @@
         };
         
         const apiCall = async (endpoint, method = 'POST', body = null) => {
-            const headers = { 'X-API-KEY': verifiedApiKey, 'Accept': 'application/json' };
+            const headers = { 'X-API-KEY': verifiedApiKey };
+            
+            // *** POPRAWKA: Ustawienie odpowiedniego nagłówka 'Accept' w zależności od endpointu ***
+            if (endpoint === 'api/public/campaign/GetAll') {
+                headers['Accept'] = 'text/plain';
+            } else {
+                headers['Accept'] = 'application/json';
+            }
+
             const options = { method, headers };
             if (body) {
                 headers['Content-Type'] = 'application/json';
@@ -328,7 +337,6 @@
                 const accountId = filterAccountSelect.value;
                 const status = filterStatusSelect.value;
                 
-                // *** POPRAWKA: Dynamiczne budowanie obiektu payload ***
                 const payload = {
                     offset: 0,
                     limit: 100,
