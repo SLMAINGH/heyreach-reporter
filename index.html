@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeyReach API Dashboard v2.2</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --background-color: #f8f9fa;
+            --surface-color: #ffffff;
+            --text-color: #212529;
+            --success-color: #198754;
+            --error-color: #dc3545;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: var(--surface-color);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+        h1, h2, h3 {
+            color: var(--primary-color);
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .step {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            background-color: #fdfdfd;
+        }
+        .step-header {
+            display: flex;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        .step-number {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        label {
+            display: block;
+            margin-bottom: .5rem;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="password"], input[type="date"], select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            margin-bottom: 1rem;
+        }
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+        button:hover:not(:disabled) {
+            background-color: #0b5ed7;
+        }
+        button:disabled {
+            background-color: var(--secondary-color);
+            cursor: not-allowed;
+        }
+        #api-status {
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        .status-success { background-color: #d1e7dd; color: #0f5132; }
+        .status-error { background-color: #f8d7da; color: #842029; }
+        #report-output {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #eee;
+            border-radius: var(--border-radius);
+            display: none;
+        }
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .report-item {
+            background: #f9f9f9;
+            padding: 1rem;
+            border-radius: 5px;
+            border-left: 5px solid var(--secondary-color);
+        }
+        .report-item h4 { margin: 0 0 5px 0; }
+        .report-item p {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 0;
+            color: var(--primary-color);
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        .filter-section {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .filter-section > div { flex: 1; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📊 HeyReach API Dashboard v2.2</h1>
+
+        <div class="step">
+            <div class="step-header"><div class="step-number">0</div><div>Podaj klucz API</div></div>
+            <label for="api-key">Twój klucz X-API-KEY:</label>
+            <input type="password" id="api-key" placeholder="Wklej swój klucz API tutaj">
+            <button id="check-api-key">Zapisz i Zweryfikuj Klucz</button>
+            <div id="api-status"></div>
+        </div>
+
+        <div class="step">
+             <div class="step-header"><div class="step-number">1</div><div>Wybierz kampanię</div></div>
+             <h3>Filtry Kampanii</h3>
+             <div class="filter-section">
+                <div>
+                    <label for="filter-account-id">Filtruj wg konta:</label>
+                    <select id="filter-account-id" disabled><option value="">Wszystkie konta</option></select>
+                </div>
+                <div>
+                     <label for="filter-status">Filtruj wg statusu:</label>
+                    <select id="filter-status" disabled>
+                        <option value="">Wszystkie statusy</option>
+                        <option value="DRAFT">Draft</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="PAUSED">Paused</option>
+                        <option value="FINISHED">Finished</option>
+                    </select>
+                </div>
+             </div>
+             <button id="fetch-campaigns" disabled>Filtruj / Odśwież listę kampanii</button>
+        </div>
+
+        <div class="step">
+            <div class="step-header"><div class="step-number">2</div><div>Wygeneruj raport</div></div>
+            <form id="report-form">
+                <label for="campaign-select">Wybierz kampanię:</label>
+                <select id="campaign-select" required disabled><option value="">Najpierw zweryfikuj klucz API</option></select>
+
+                <label for="start-date">Data początkowa:</label>
+                <input type="date" id="start-date" required>
+
+                <label for="end-date">Data końcowa:</label>
+                <input type="date" id="end-date" required>
+
+                <button type="submit" id="generate-report" disabled>Generuj Raport</button>
+            </form>
+        </div>
+
+        <div class="loader" id="loader"></div>
+
+        <div id="report-output">
+            <h2>Wyniki Raportu</h2>
+            <div id="report-summary"></div>
+            <div id="report-details" class="report-grid"></div>
+            <br>
+            <button id="save-pdf" style="background-color: var(--success-color);">Zapisz jako PDF</button>
+        </div>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+
+        const apiKeyInput = document.getElementById('api-key');
+        const checkApiKeyBtn = document.getElementById('check-api-key');
+        const apiStatusDiv = document.getElementById('api-status');
+        const filterAccountSelect = document.getElementById('filter-account-id');
+        const filterStatusSelect = document.getElementById('filter-status');
+        const fetchCampaignsBtn = document.getElementById('fetch-campaigns');
+        const reportForm = document.getElementById('report-form');
+        const campaignSelect = document.getElementById('campaign-select');
+        const startDateInput = document.getElementById('start-date');
+        const endDateInput = document.getElementById('end-date');
+        const generateReportBtn = document.getElementById('generate-report');
+        const reportOutputDiv = document.getElementById('report-output');
+        const reportSummaryDiv = document.getElementById('report-summary');
+        const reportDetailsDiv = document.getElementById('report-details');
+        const savePdfBtn = document.getElementById('save-pdf');
+        const loader = document.getElementById('loader');
+
+        let verifiedApiKey = null;
+        let allAccounts = [];
+
+        const showLoader = () => loader.style.display = 'block';
+        const hideLoader = () => loader.style.display = 'none';
+        
+        const showApiStatus = (message, isSuccess) => {
+            apiStatusDiv.textContent = message;
+            apiStatusDiv.className = isSuccess ? 'status-success' : 'status-error';
+        };
+        
+        // *** NAJWAŻNIEJSZA POPRAWKA: Uodporniona funkcja do komunikacji z API ***
+        const apiCall = async (endpoint, method = 'POST', body = null) => {
+            const headers = { 'X-API-KEY': verifiedApiKey, 'Accept': 'application/json' };
+            const options = { method, headers };
+            if (body) {
+                headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(body);
+            }
+
+            const response = await fetch(`https://api.heyreach.io/api/public/${endpoint}`, options);
+
+            if (!response.ok) {
+                let errorText = '';
+                try {
+                    errorText = await response.text();
+                } catch (e) {
+                    errorText = 'Brak dodatkowych informacji o błędzie.';
+                }
+                throw new Error(`Błąd API (${response.status}): ${errorText || response.statusText}`);
+            }
+            
+            // Bezpieczne sprawdzanie, czy odpowiedź ma treść
+            const responseText = await response.text();
+            try {
+                // Jeśli tekst jest pusty, zwróć pusty obiekt, w przeciwnym razie sparsuj JSON
+                return responseText ? JSON.parse(responseText) : {};
+            } catch (e) {
+                console.error("Błąd parsowania JSON:", e, "Otrzymany tekst:", responseText);
+                throw new Error("Błąd odpowiedzi serwera: nieprawidłowy format JSON.");
+            }
+        };
+        
+        const handleCheckApiKey = async () => {
+            const key = apiKeyInput.value.trim();
+            if (!key) return showApiStatus('Proszę wprowadzić klucz API.', false);
+            
+            showLoader();
+            apiStatusDiv.textContent = '';
+            verifiedApiKey = key;
+
+            try {
+                // Użycie `fetch` bezpośrednio do tego endpointu jest prostsze, bo nie oczekujemy JSON
+                const response = await fetch('https://api.heyreach.io/api/public/auth/CheckApiKey', { headers: { 'X-API-KEY': key } });
+                if (!response.ok) throw new Error('Nieprawidłowy klucz API lub błąd sieci.');
+
+                localStorage.setItem('heyreach_api_key', key);
+                showApiStatus('Klucz API jest poprawny!', true);
+                
+                [filterAccountSelect, filterStatusSelect, fetchCampaignsBtn, campaignSelect, generateReportBtn]
+                    .forEach(el => el.disabled = false);
+
+                await handleFetchAccounts();
+                await handleFetchCampaigns();
+
+            } catch (error) {
+                console.error("Błąd weryfikacji klucza:", error);
+                verifiedApiKey = null;
+                showApiStatus(error.message, false);
+            } finally {
+                hideLoader();
+            }
+        };
+
+        const handleFetchAccounts = async () => {
+            try {
+                const data = await apiCall('li_account/GetAll', 'POST', { offset: 0, limit: 100 });
+                allAccounts = data.items || [];
+                filterAccountSelect.innerHTML = '<option value="">Wszystkie konta</option>';
+                allAccounts.forEach(acc => {
+                    const option = document.createElement('option');
+                    option.value = acc.id;
+                    option.textContent = `${acc.firstName} ${acc.lastName} (ID: ${acc.id})`;
+                    filterAccountSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Błąd pobierania kont:", error);
+                alert(`Nie udało się pobrać kont: ${error.message}`);
+            }
+        };
+
+        const handleFetchCampaigns = async () => {
+            if (!verifiedApiKey) return;
+            showLoader();
+            try {
+                const accountId = filterAccountSelect.value;
+                const status = filterStatusSelect.value;
+                const payload = {
+                    offset: 0,
+                    limit: 200,
+                    accountIds: accountId ? [parseInt(accountId)] : [],
+                    statuses: status ? [status] : []
+                };
+                
+                const data = await apiCall('campaign/GetAll', 'POST', payload);
+                campaignSelect.innerHTML = (data.items && data.items.length > 0) 
+                    ? '<option value="">-- Wybierz kampanię --</option>' 
+                    : '<option value="">Nie znaleziono kampanii dla filtrów</option>';
+                
+                (data.items || []).forEach(camp => {
+                    if (camp.accountLinks && camp.accountLinks.length > 0) {
+                        const accountIdForReport = camp.accountLinks[0].accountId;
+                        const option = document.createElement('option');
+                        option.value = `${camp.id},${accountIdForReport}`;
+                        option.textContent = `${camp.name} (ID: ${camp.id})`;
+                        campaignSelect.appendChild(option);
+                    }
+                });
+            } catch (error) {
+                console.error("Błąd pobierania kampanii:", error);
+                alert(`Nie udało się pobrać kampanii: ${error.message}`);
+                campaignSelect.innerHTML = '<option value="">Błąd ładowania kampanii</option>';
+            } finally {
+                hideLoader();
+            }
+        };
+
+        const handleGenerateReport = async (event) => {
+            event.preventDefault();
+            if (!reportForm.checkValidity() || !campaignSelect.value) {
+                reportForm.reportValidity();
+                return;
+            }
+            
+            showLoader();
+            reportOutputDiv.style.display = 'none';
+
+            const [campaignId, linkedInAccountId] = campaignSelect.value.split(',').map(Number);
+            
+            const payload = { campaignId, linkedInAccountId, periodStart: startDateInput.value, periodEnd: endDateInput.value };
+
+            try {
+                const reportData = await apiCall('stats/GetCampaignStats', 'POST', payload);
+                displayReport({ ...reportData, linkedInAccountId });
+            } catch (error) {
+                console.error("Błąd generowania raportu:", error);
+                alert(`Błąd podczas generowania raportu: ${error.message}`);
+            } finally {
+                hideLoader();
+            }
+        };
+        
+        const displayReport = (data) => {
+            const account = allAccounts.find(a => a.id === data.linkedInAccountId);
+            const accountName = account ? `${account.firstName} ${account.lastName}` : `ID: ${data.linkedInAccountId}`;
+
+            reportSummaryDiv.innerHTML = `
+                <p><strong>Raport dla kampanii:</strong> ${data.campaignName} (#${data.campaignId})</p>
+                <p><strong>Konto wysyłające:</strong> ${accountName}</p>
+                <p><strong>Okres:</strong> od ${startDateInput.value} do ${endDateInput.value}</p>`;
+            
+            reportDetailsDiv.innerHTML = `
+                <div class="report-item"><h4>Wysłane zaproszenia</h4><p>${data.invitationsSent}</p></div>
+                <div class="report-item"><h4>Zaakceptowane zaproszenia</h4><p>${data.invitationsAccepted}</p></div>
+                <div class="report-item"><h4>Współczynnik akceptacji</h4><p>${data.invitationsAcceptedRate.toFixed(2)}%</p></div>
+                <div class="report-item"><h4>Wysłane wiadomości</h4><p>${data.messagesSent}</p></div>
+                <div class="report-item"><h4>Odpowiedzi na wiadomości</h4><p>${data.messagesReplied}</p></div>
+                <div class="report-item"><h4>Współczynnik odpowiedzi</h4><p>${data.messagesRepliedRate.toFixed(2)}%</p></div>`;
+            
+            reportOutputDiv.style.display = 'block';
+        };
+
+        const handleSavePdf = () => {
+            const reportSummary = document.getElementById('report-summary').innerText;
+            if (!reportSummary) return alert("Najpierw wygeneruj raport.");
+
+            const doc = new jsPDF();
+            const campaignName = reportSummary.match(/Raport dla kampanii: (.*?)\s\(#/)[1];
+            const accountName = reportSummary.match(/Konto wysyłające: (.*)/)[1];
+            const period = reportSummary.match(/Okres: (.*)/)[1];
+
+            doc.setFontSize(18);
+            doc.text("Raport z Kampanii HeyReach", 14, 22);
+
+            doc.autoTable({
+                startY: 30,
+                body: [['Kampania', campaignName], ['Konto', accountName], ['Okres', period]],
+                theme: 'plain',
+            });
+
+            const tableData = [...document.querySelectorAll('.report-item')].map(item => [
+                item.querySelector('h4').innerText,
+                item.querySelector('p').innerText
+            ]);
+            
+            doc.autoTable({
+                startY: doc.lastAutoTable.finalY + 10,
+                head: [['Metryka', 'Wartość']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { fillColor: [13, 110, 253] }
+            });
+
+            const campaignId = reportSummary.match(/\(#(\d+)\)/)[1];
+            doc.save(`raport-heyreach-${campaignId}-${startDateInput.value}.pdf`);
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('heyreach_api_key');
+            if (savedKey) {
+                apiKeyInput.value = savedKey;
+                handleCheckApiKey();
+            }
+            const today = new Date();
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+            endDateInput.valueAsDate = today;
+            startDateInput.valueAsDate = thirtyDaysAgo;
+        });
+
+        checkApiKeyBtn.addEventListener('click', handleCheckApiKey);
+        fetchCampaignsBtn.addEventListener('click', handleFetchCampaigns);
+        reportForm.addEventListener('submit', handleGenerateReport);
+        savePdfBtn.addEventListener('click', handleSavePdf);
+    </script>
+</body>
+</html>
