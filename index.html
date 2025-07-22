@@ -214,7 +214,6 @@
     <script>
         const { jsPDF } = window.jspdf;
 
-        // Elementy DOM
         const apiKeyInput = document.getElementById('api-key');
         const checkApiKeyBtn = document.getElementById('check-api-key');
         const apiStatusDiv = document.getElementById('api-status');
@@ -234,7 +233,7 @@
         
         // ====================================================================
         // Wklej tutaj adres swojego workera z Cloudflare. Zastąp cały ten tekst.
-        // Przykład: 'https://twoj-worker.twoj-login.workers.dev/'
+        // Przykład: 'https://shy-meadow-dba0.lammelstanislaw.workers.dev/'
         // ====================================================================
         const PROXY_URL = 'https://shy-meadow-dba0.lammelstanislaw.workers.dev/';
 
@@ -252,7 +251,6 @@
         const apiCall = async (endpoint, method = 'POST', body = null) => {
             const headers = { 'X-API-KEY': verifiedApiKey };
             
-            // *** POPRAWKA: Ustawienie odpowiedniego nagłówka 'Accept' w zależności od endpointu ***
             if (endpoint === 'api/public/campaign/GetAll') {
                 headers['Accept'] = 'text/plain';
             } else {
