@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HeyReach API Dashboard v2.9</title>
+    <title>HeyReach API Dashboard v3.1</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -34,7 +34,7 @@
             border-radius: var(--border-radius);
             box-shadow: var(--box-shadow);
         }
-        h1, h2, h3 {
+        h1, h2 {
             color: var(--primary-color);
             border-bottom: 2px solid #eee;
             padding-bottom: 10px;
@@ -70,7 +70,7 @@
             margin-bottom: .5rem;
             font-weight: bold;
         }
-        input[type="text"], input[type="password"], input[type="date"], select {
+        input[type="text"], input[type="password"], select {
             width: 100%;
             padding: 10px;
             border-radius: 5px;
@@ -113,7 +113,7 @@
         }
         .report-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 1rem;
         }
         .report-item {
@@ -122,7 +122,7 @@
             border-radius: 5px;
             border-left: 5px solid var(--secondary-color);
         }
-        .report-item h4 { margin: 0 0 5px 0; }
+        .report-item h4 { margin: 0 0 5px 0; font-size: 0.9em; }
         .report-item p {
             font-size: 1.8rem;
             font-weight: bold;
@@ -139,20 +139,13 @@
             margin: 20px auto;
             display: none;
         }
-        .filter-section {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .filter-section > div { flex: 1; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>📊 HeyReach API Dashboard v2.8</h1>
+        <h1>📊 HeyReach API Dashboard v3.1</h1>
 
         <div class="step">
             <div class="step-header"><div class="step-number">0</div><div>Podaj klucz API</div></div>
@@ -163,47 +156,15 @@
         </div>
 
         <div class="step">
-             <div class="step-header"><div class="step-number">1</div><div>Wybierz kampanię</div></div>
-             <h3>Filtry Kampanii</h3>
-             <div class="filter-section">
-                <div>
-                    <label for="filter-account-id">Filtruj wg konta:</label>
-                    <select id="filter-account-id" disabled><option value="">Wszystkie konta</option></select>
-                </div>
-                <div>
-                     <label for="filter-status">Filtruj wg statusu:</label>
-                    <select id="filter-status" disabled>
-                        <option value="">Wszystkie statusy</option>
-                        <option value="DRAFT">Draft</option>
-                        <option value="IN_PROGRESS">In Progress</option>
-                        <option value="PAUSED">Paused</option>
-                        <option value="FINISHED">Finished</option>
-                    </select>
-                </div>
-             </div>
-             <button id="fetch-campaigns" disabled>Filtruj / Odśwież listę kampanii</button>
-        </div>
-
-        <div class="step">
-            <div class="step-header"><div class="step-number">2</div><div>Wygeneruj raport</div></div>
-            <form id="report-form">
-                <label for="campaign-select">Wybierz kampanię:</label>
-                <select id="campaign-select" required disabled><option value="">Najpierw zweryfikuj klucz API</option></select>
-
-                <label for="start-date">Data początkowa:</label>
-                <input type="date" id="start-date" required>
-
-                <label for="end-date">Data końcowa:</label>
-                <input type="date" id="end-date" required>
-
-                <button type="submit" id="generate-report" disabled>Generuj Raport</button>
-            </form>
+             <div class="step-header"><div class="step-number">1</div><div>Wyświetl statystyki kampanii</div></div>
+             <label for="campaign-select">Wybierz kampanię lub zobacz podsumowanie:</label>
+             <select id="campaign-select" disabled><option value="">Najpierw zweryfikuj klucz API</option></select>
         </div>
 
         <div class="loader" id="loader"></div>
 
         <div id="report-output">
-            <h2>Wyniki Raportu</h2>
+            <h2>Statystyki Postępu</h2>
             <div id="report-summary"></div>
             <div id="report-details" class="report-grid"></div>
             <br>
@@ -217,28 +178,17 @@
         const apiKeyInput = document.getElementById('api-key');
         const checkApiKeyBtn = document.getElementById('check-api-key');
         const apiStatusDiv = document.getElementById('api-status');
-        const filterAccountSelect = document.getElementById('filter-account-id');
-        const filterStatusSelect = document.getElementById('filter-status');
-        const fetchCampaignsBtn = document.getElementById('fetch-campaigns');
-        const reportForm = document.getElementById('report-form');
         const campaignSelect = document.getElementById('campaign-select');
-        const startDateInput = document.getElementById('start-date');
-        const endDateInput = document.getElementById('end-date');
-        const generateReportBtn = document.getElementById('generate-report');
         const reportOutputDiv = document.getElementById('report-output');
         const reportSummaryDiv = document.getElementById('report-summary');
         const reportDetailsDiv = document.getElementById('report-details');
         const savePdfBtn = document.getElementById('save-pdf');
         const loader = document.getElementById('loader');
         
-        // ====================================================================
-        // Wklej tutaj adres swojego workera z Cloudflare.
-        // Przykład: 'https://shy-meadow-dba0.lammelstanislaw.workers.dev/'
-        // ====================================================================
         const PROXY_URL = 'https://shy-meadow-dba0.lammelstanislaw.workers.dev/';
 
         let verifiedApiKey = null;
-        let allAccounts = [];
+        let allCampaigns = [];
 
         const showLoader = () => loader.style.display = 'block';
         const hideLoader = () => loader.style.display = 'none';
@@ -250,27 +200,22 @@
         
         const apiCall = async (endpoint, method = 'POST', body = null) => {
             const headers = { 'X-API-KEY': verifiedApiKey };
-            
             if (endpoint === 'api/public/campaign/GetAll') {
                 headers['Accept'] = 'text/plain';
             } else {
                 headers['Accept'] = 'application/json';
             }
-
             const options = { method, headers };
             if (body) {
                 headers['Content-Type'] = 'application/json';
                 options.body = JSON.stringify(body);
             }
-
             const response = await fetch(`${PROXY_URL}${endpoint}`, options);
-
             if (!response.ok) {
                 let errorText = '';
-                try { errorText = await response.text(); } catch (e) { /* ignore */ }
+                try { errorText = await response.text(); } catch (e) {}
                 throw new Error(`Błąd API (${response.status}): ${errorText || response.statusText}`);
             }
-            
             const responseText = await response.text();
             try {
                 return responseText ? JSON.parse(responseText) : {};
@@ -288,20 +233,14 @@
             showLoader();
             apiStatusDiv.textContent = '';
             verifiedApiKey = key;
-
             try {
                 const response = await fetch(`${PROXY_URL}api/public/auth/CheckApiKey`, { headers: { 'X-API-KEY': key } });
                 if (!response.ok) throw new Error('Nieprawidłowy klucz API lub błąd sieci.');
 
                 localStorage.setItem('heyreach_api_key', key);
                 showApiStatus('Klucz API jest poprawny!', true);
-                
-                [filterAccountSelect, filterStatusSelect, fetchCampaignsBtn, campaignSelect, generateReportBtn]
-                    .forEach(el => el.disabled = false);
-
-                await handleFetchAccounts();
+                campaignSelect.disabled = false;
                 await handleFetchCampaigns();
-
             } catch (error) {
                 console.error("Błąd weryfikacji klucza:", error);
                 verifiedApiKey = null;
@@ -311,132 +250,139 @@
             }
         };
 
-        const handleFetchAccounts = async () => {
-            try {
-                const data = await apiCall('api/public/li_account/GetAll', 'POST', { offset: 0, limit: 100 });
-                allAccounts = data.items || [];
-                filterAccountSelect.innerHTML = '<option value="">Wszystkie konta</option>';
-                allAccounts.forEach(acc => {
-                    const option = document.createElement('option');
-                    option.value = acc.id;
-                    option.textContent = `${acc.firstName} ${acc.lastName} (ID: ${acc.id})`;
-                    filterAccountSelect.appendChild(option);
-                });
-            } catch (error) {
-                console.error("Błąd pobierania kont:", error);
-                alert(`Nie udało się pobrać kont: ${error.message}`);
-            }
-        };
-
         const handleFetchCampaigns = async () => {
             if (!verifiedApiKey) return;
             showLoader();
             try {
-                const accountId = filterAccountSelect.value;
-                const status = filterStatusSelect.value;
-                
-                const payload = {
-                    offset: 0,
-                    limit: 100,
-                };
-                if (accountId) {
-                    payload.accountIds = [parseInt(accountId)];
-                }
-                if (status) {
-                    payload.statuses = [status];
-                }
-                
+                const payload = { offset: 0, limit: 100 };
                 const data = await apiCall('api/public/campaign/GetAll', 'POST', payload);
-                campaignSelect.innerHTML = (data.items && data.items.length > 0) 
-                    ? '<option value="">-- Wybierz kampanię --</option>' 
-                    : '<option value="">Nie znaleziono kampanii dla filtrów</option>';
+                allCampaigns = data.items || [];
                 
-                (data.items || []).forEach(camp => {
-                    // *** OSTATECZNA POPRAWKA: Użycie 'campaignAccountIds' zamiast 'accountLinks' ***
-                    if (camp.campaignAccountIds && camp.campaignAccountIds.length > 0) {
-                        const accountIdForReport = camp.campaignAccountIds[0];
-                        const option = document.createElement('option');
-                        option.value = `${camp.id},${accountIdForReport}`;
-                        option.textContent = `${camp.name} (ID: ${camp.id})`;
-                        campaignSelect.appendChild(option);
-                    }
+                campaignSelect.innerHTML = ''; // Wyczyść listę przed dodaniem nowych
+                
+                // Dodaj opcję podsumowania na początku
+                const summaryOption = document.createElement('option');
+                summaryOption.value = 'all';
+                summaryOption.textContent = '-- Pokaż podsumowanie wszystkich --';
+                campaignSelect.appendChild(summaryOption);
+                
+                allCampaigns.forEach(camp => {
+                    const option = document.createElement('option');
+                    option.value = camp.id;
+                    option.textContent = `${camp.name} (ID: ${camp.id})`;
+                    campaignSelect.appendChild(option);
                 });
+                
+                // Domyślnie pokaż podsumowanie
+                campaignSelect.value = 'all';
+                displayAggregateStats();
+
             } catch (error) {
                 console.error("Błąd pobierania kampanii:", error);
                 alert(`Nie udało się pobrać kampanii: ${error.message}`);
-                campaignSelect.innerHTML = '<option value="">Błąd ładowania kampanii</option>';
             } finally {
                 hideLoader();
             }
         };
 
-        const handleGenerateReport = async (event) => {
-            event.preventDefault();
-            if (!reportForm.checkValidity() || !campaignSelect.value) {
-                reportForm.reportValidity();
+        const displayCampaignStats = (campaignId) => {
+            const campaign = allCampaigns.find(c => c.id === parseInt(campaignId));
+            if (!campaign) {
+                reportOutputDiv.style.display = 'none';
                 return;
             }
-            
-            showLoader();
-            reportOutputDiv.style.display = 'none';
 
-            const [campaignId, linkedInAccountId] = campaignSelect.value.split(',').map(Number);
+            reportSummaryDiv.innerHTML = `<p><strong>Kampania:</strong> ${campaign.name} (#${campaign.id})</p>`;
             
-            const payload = { campaignId, linkedInAccountId, periodStart: startDateInput.value, periodEnd: endDateInput.value };
-
-            try {
-                const reportData = await apiCall('api/public/stats/GetCampaignStats', 'POST', payload);
-                displayReport({ ...reportData, linkedInAccountId });
-            } catch (error) {
-                console.error("Błąd generowania raportu:", error);
-                alert(`Błąd podczas generowania raportu: ${error.message}`);
-            } finally {
-                hideLoader();
+            const stats = campaign.progressStats;
+            if (stats) {
+                reportDetailsDiv.innerHTML = `
+                    <div class="report-item"><h4>Wszystkich leadów</h4><p>${stats.totalUsers}</p></div>
+                    <div class="report-item"><h4>W trakcie</h4><p>${stats.totalUsersInProgress}</p></div>
+                    <div class="report-item"><h4>Oczekujących</h4><p>${stats.totalUsersPending}</p></div>
+                    <div class="report-item"><h4>Zakończonych</h4><p>${stats.totalUsersFinished}</p></div>
+                    <div class="report-item"><h4>Nieudanych</h4><p>${stats.totalUsersFailed}</p></div>
+                    <div class="report-item"><h4>Wykluczonych</h4><p>${stats.totalUsersExcluded}</p></div>`;
+            } else {
+                reportDetailsDiv.innerHTML = `<p>Brak szczegółowych statystyk dla tej kampanii (prawdopodobnie jest w statusie DRAFT).</p>`;
             }
-        };
-        
-        const displayReport = (data) => {
-            const account = allAccounts.find(a => a.id === data.linkedInAccountId);
-            const accountName = account ? `${account.firstName} ${account.lastName}` : `ID: ${data.linkedInAccountId}`;
-
-            reportSummaryDiv.innerHTML = `
-                <p><strong>Raport dla kampanii:</strong> ${data.campaignName} (#${data.campaignId})</p>
-                <p><strong>Konto wysyłające:</strong> ${accountName}</p>
-                <p><strong>Okres:</strong> od ${startDateInput.value} do ${endDateInput.value}</p>`;
             
+            reportOutputDiv.style.display = 'block';
+        };
+
+        const displayAggregateStats = () => {
+            const summary = { totalUsers: 0, totalUsersInProgress: 0, totalUsersPending: 0, totalUsersFinished: 0, totalUsersFailed: 0, totalUsersExcluded: 0 };
+            
+            allCampaigns.forEach(campaign => {
+                if (campaign.progressStats) {
+                    summary.totalUsers += campaign.progressStats.totalUsers;
+                    summary.totalUsersInProgress += campaign.progressStats.totalUsersInProgress;
+                    summary.totalUsersPending += campaign.progressStats.totalUsersPending;
+                    summary.totalUsersFinished += campaign.progressStats.totalUsersFinished;
+                    summary.totalUsersFailed += campaign.progressStats.totalUsersFailed;
+                    summary.totalUsersExcluded += campaign.progressStats.totalUsersExcluded;
+                }
+            });
+
+            reportSummaryDiv.innerHTML = `<p><strong>Podsumowanie dla ${allCampaigns.length} kampanii</strong></p>`;
             reportDetailsDiv.innerHTML = `
-                <div class="report-item"><h4>Wysłane zaproszenia</h4><p>${data.invitationsSent}</p></div>
-                <div class="report-item"><h4>Zaakceptowane zaproszenia</h4><p>${data.invitationsAccepted}</p></div>
-                <div class="report-item"><h4>Współczynnik akceptacji</h4><p>${data.invitationsAcceptedRate.toFixed(2)}%</p></div>
-                <div class="report-item"><h4>Wysłane wiadomości</h4><p>${data.messagesSent}</p></div>
-                <div class="report-item"><h4>Odpowiedzi na wiadomości</h4><p>${data.messagesReplied}</p></div>
-                <div class="report-item"><h4>Współczynnik odpowiedzi</h4><p>${data.messagesRepliedRate.toFixed(2)}%</p></div>`;
+                <div class="report-item"><h4>Wszystkich leadów</h4><p>${summary.totalUsers}</p></div>
+                <div class="report-item"><h4>W trakcie</h4><p>${summary.totalUsersInProgress}</p></div>
+                <div class="report-item"><h4>Oczekujących</h4><p>${summary.totalUsersPending}</p></div>
+                <div class="report-item"><h4>Zakończonych</h4><p>${summary.totalUsersFinished}</p></div>
+                <div class="report-item"><h4>Nieudanych</h4><p>${summary.totalUsersFailed}</p></div>
+                <div class="report-item"><h4>Wykluczonych</h4><p>${summary.totalUsersExcluded}</p></div>`;
             
             reportOutputDiv.style.display = 'block';
         };
 
         const handleSavePdf = () => {
-            const reportSummary = document.getElementById('report-summary').innerText;
-            if (!reportSummary) return alert("Najpierw wygeneruj raport.");
+            const selectedValue = campaignSelect.value;
+            if (!selectedValue) return alert("Najpierw wybierz kampanię lub podsumowanie.");
 
             const doc = new jsPDF();
-            const campaignName = reportSummary.match(/Raport dla kampanii: (.*?)\s\(#/)[1];
-            const accountName = reportSummary.match(/Konto wysyłające: (.*)/)[1];
-            const period = reportSummary.match(/Okres: (.*)/)[1];
-
             doc.setFontSize(18);
-            doc.text("Raport z Kampanii HeyReach", 14, 22);
+            doc.text("Statystyki Postępu Kampanii HeyReach", 14, 22);
 
-            doc.autoTable({
-                startY: 30,
-                body: [['Kampania', campaignName], ['Konto', accountName], ['Okres', period]],
-                theme: 'plain',
-            });
+            let tableData = [];
+            
+            if (selectedValue === 'all') {
+                const summaryTitle = `Podsumowanie dla ${allCampaigns.length} kampanii`;
+                doc.autoTable({ startY: 30, body: [['', summaryTitle]], theme: 'plain' });
+                
+                const summary = { totalUsers: 0, totalUsersInProgress: 0, totalUsersPending: 0, totalUsersFinished: 0, totalUsersFailed: 0, totalUsersExcluded: 0 };
+                allCampaigns.forEach(campaign => {
+                    if (campaign.progressStats) {
+                        summary.totalUsers += campaign.progressStats.totalUsers;
+                        summary.totalUsersInProgress += campaign.progressStats.totalUsersInProgress;
+                        summary.totalUsersPending += campaign.progressStats.totalUsersPending;
+                        summary.totalUsersFinished += campaign.progressStats.totalUsersFinished;
+                        summary.totalUsersFailed += campaign.progressStats.totalUsersFailed;
+                        summary.totalUsersExcluded += campaign.progressStats.totalUsersExcluded;
+                    }
+                });
+                tableData = Object.entries(summary).map(([key, value]) => [key.replace('totalUsers', ''), value]);
+                tableData[0][0] = 'Wszystkich leadów';
+                tableData[1][0] = 'W trakcie';
+                tableData[2][0] = 'Oczekujących';
+                tableData[3][0] = 'Zakończonych';
+                tableData[4][0] = 'Nieudanych';
+                tableData[5][0] = 'Wykluczonych';
 
-            const tableData = [...document.querySelectorAll('.report-item')].map(item => [
-                item.querySelector('h4').innerText,
-                item.querySelector('p').innerText
-            ]);
+            } else {
+                const campaign = allCampaigns.find(c => c.id === parseInt(selectedValue));
+                if (!campaign) return;
+
+                doc.autoTable({ startY: 30, body: [['Kampania', `${campaign.name} (#${campaign.id})`]], theme: 'plain' });
+                const stats = campaign.progressStats;
+                if (stats) {
+                    tableData.push(
+                        ['Wszystkich leadów', stats.totalUsers], ['W trakcie', stats.totalUsersInProgress],
+                        ['Oczekujących', stats.totalUsersPending], ['Zakończonych', stats.totalUsersFinished],
+                        ['Nieudanych', stats.totalUsersFailed], ['Wykluczonych', stats.totalUsersExcluded]
+                    );
+                }
+            }
             
             doc.autoTable({
                 startY: doc.lastAutoTable.finalY + 10,
@@ -446,8 +392,7 @@
                 headStyles: { fillColor: [13, 110, 253] }
             });
 
-            const campaignId = reportSummary.match(/\(#(\d+)\)/)[1];
-            doc.save(`raport-heyreach-${campaignId}-${startDateInput.value}.pdf`);
+            doc.save(`statystyki-heyreach-${selectedValue}.pdf`);
         };
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -458,16 +403,19 @@
                     handleCheckApiKey();
                 }
             }
-            const today = new Date();
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(today.getDate() - 30);
-            endDateInput.valueAsDate = today;
-            startDateInput.valueAsDate = thirtyDaysAgo;
         });
 
         checkApiKeyBtn.addEventListener('click', handleCheckApiKey);
-        fetchCampaignsBtn.addEventListener('click', handleFetchCampaigns);
-        reportForm.addEventListener('submit', handleGenerateReport);
+        campaignSelect.addEventListener('change', (event) => {
+            const selectedValue = event.target.value;
+            if (selectedValue === 'all') {
+                displayAggregateStats();
+            } else if (selectedValue) {
+                displayCampaignStats(selectedValue);
+            } else {
+                reportOutputDiv.style.display = 'none';
+            }
+        });
         savePdfBtn.addEventListener('click', handleSavePdf);
     </script>
 </body>
