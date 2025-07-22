@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HeyReach API Dashboard v2.7</title>
+    <title>HeyReach API Dashboard v2.9</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -232,7 +232,7 @@
         const loader = document.getElementById('loader');
         
         // ====================================================================
-        // Wklej tutaj adres swojego workera z Cloudflare. Zastąp cały ten tekst.
+        // Wklej tutaj adres swojego workera z Cloudflare.
         // Przykład: 'https://shy-meadow-dba0.lammelstanislaw.workers.dev/'
         // ====================================================================
         const PROXY_URL = 'https://shy-meadow-dba0.lammelstanislaw.workers.dev/';
@@ -352,8 +352,9 @@
                     : '<option value="">Nie znaleziono kampanii dla filtrów</option>';
                 
                 (data.items || []).forEach(camp => {
-                    if (camp.accountLinks && camp.accountLinks.length > 0) {
-                        const accountIdForReport = camp.accountLinks[0].accountId;
+                    // *** OSTATECZNA POPRAWKA: Użycie 'campaignAccountIds' zamiast 'accountLinks' ***
+                    if (camp.campaignAccountIds && camp.campaignAccountIds.length > 0) {
+                        const accountIdForReport = camp.campaignAccountIds[0];
                         const option = document.createElement('option');
                         option.value = `${camp.id},${accountIdForReport}`;
                         option.textContent = `${camp.name} (ID: ${camp.id})`;
