@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HeyReach API Dashboard v3.4</title>
+    <title>HeyReach API Dashboard v3.6</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -144,7 +144,7 @@
 <body>
 
     <div class="container">
-        <h1>📊 HeyReach API Dashboard v3.4</h1>
+        <h1>📊 HeyReach API Dashboard v3.6</h1>
 
         <div class="step">
             <div class="step-header"><div class="step-number">0</div><div>Enter API Key</div></div>
@@ -180,9 +180,11 @@
         <div class="loader" id="loader"></div>
 
         <div id="report-output">
-            <h2>Progress Statistics</h2>
-            <div id="report-summary"></div>
+            <h2>Conversation Statistics</h2>
             <div id="report-details" class="report-grid"></div>
+            <h2 style="margin-top: 2rem;">Overall Campaign Progress</h2>
+            <div id="report-summary"></div>
+            <div id="report-progress-details" class="report-grid"></div>
             <br>
             <button id="save-pdf" style="background-color: var(--success-color);">Save as PDF</button>
         </div>
@@ -200,6 +202,7 @@
         const reportOutputDiv = document.getElementById('report-output');
         const reportSummaryDiv = document.getElementById('report-summary');
         const reportDetailsDiv = document.getElementById('report-details');
+        const reportProgressDetailsDiv = document.getElementById('report-progress-details');
         const savePdfBtn = document.getElementById('save-pdf');
         const loader = document.getElementById('loader');
         
@@ -308,7 +311,7 @@
             let unreadCount = 0;
             let totalConversations = 0;
             let offset = 0;
-            const limit = 100; // Fetch 100 conversations per API call
+            const limit = 100;
 
             let data;
             do {
@@ -355,6 +358,7 @@
         const displayCampaignStats = async (campaignId) => {
             showLoader();
             reportDetailsDiv.innerHTML = '';
+            reportProgressDetailsDiv.innerHTML = '';
             try {
                 const campaign = allCampaigns.find(c => c.id === parseInt(campaignId));
                 if (!campaign) return;
@@ -364,18 +368,24 @@
                     Promise.resolve(campaign.progressStats)
                 ]);
 
-                const totalLeads = stats.totalUsers || 0;
-                const replyRate = totalLeads > 0 ? ((convoStats.repliedCount / totalLeads) * 100).toFixed(1) : '0.0';
+                // NEW LOGIC: Conversation-based Reply Rate
+                const totalConversations = convoStats.totalConversations;
+                const replyRate = totalConversations > 0 ? ((convoStats.repliedCount / totalConversations) * 100).toFixed(1) : '0.0';
 
-                reportSummaryDiv.innerHTML = `<p><strong>Campaign:</strong> ${campaign.name} (#${campaign.id})</p>`;
+                // Display conversation stats
                 reportDetailsDiv.innerHTML = `
-                    <div class="report-item"><h4>Total Leads</h4><p>${stats.totalUsers}</p></div>
-                    <div class="report-item"><h4>Finished</h4><p>${stats.totalUsersFinished}</p></div>
-                    <div class="report-item"><h4>Replied</h4><p>${convoStats.repliedCount}</p></div>
+                    <div class="report-item"><h4>Rozpoczęte konwersacje</h4><p>${totalConversations}</p></div>
+                    <div class="report-item"><h4>Konwersacje z odpowiedzią</h4><p>${convoStats.repliedCount}</p></div>
                     <div class="report-item"><h4>Reply Rate</h4><p>${replyRate}%</p></div>
-                    <div class="report-item"><h4>Unread Msgs</h4><p>${convoStats.unreadCount}</p></div>
+                    <div class="report-item"><h4>Nieprzeczytane</h4><p>${convoStats.unreadCount}</p></div>`;
+
+                // Display campaign progress stats
+                reportSummaryDiv.innerHTML = `<p><strong>Campaign:</strong> ${campaign.name} (#${campaign.id})</p>`;
+                reportProgressDetailsDiv.innerHTML = `
+                    <div class="report-item"><h4>Total Leads</h4><p>${stats.totalUsers}</p></div>
                     <div class="report-item"><h4>In Progress</h4><p>${stats.totalUsersInProgress}</p></div>
                     <div class="report-item"><h4>Pending</h4><p>${stats.totalUsersPending}</p></div>
+                    <div class="report-item"><h4>Finished</h4><p>${stats.totalUsersFinished}</p></div>
                     <div class="report-item"><h4>Failed</h4><p>${stats.totalUsersFailed}</p></div>
                     <div class="report-item"><h4>Excluded</h4><p>${stats.totalUsersExcluded}</p></div>`;
                 reportOutputDiv.style.display = 'block';
@@ -390,6 +400,7 @@
         const displayAggregateStats = async (campaigns) => {
             showLoader();
             reportDetailsDiv.innerHTML = '';
+            reportProgressDetailsDiv.innerHTML = '';
             try {
                 if (campaigns.length === 0) {
                     reportSummaryDiv.innerHTML = `<p><strong>No campaigns match the current filters.</strong></p>`;
@@ -403,18 +414,24 @@
                     Promise.resolve(calculateAggregateStats(campaigns))
                 ]);
                 
-                const totalLeads = summary.totalUsers || 0;
-                const replyRate = totalLeads > 0 ? ((convoStats.repliedCount / totalLeads) * 100).toFixed(1) : '0.0';
+                // NEW LOGIC: Conversation-based Reply Rate
+                const totalConversations = convoStats.totalConversations;
+                const replyRate = totalConversations > 0 ? ((convoStats.repliedCount / totalConversations) * 100).toFixed(1) : '0.0';
                 
-                reportSummaryDiv.innerHTML = `<p><strong>Summary for ${campaigns.length} campaigns</strong></p>`;
+                // Display conversation stats
                 reportDetailsDiv.innerHTML = `
-                    <div class="report-item"><h4>Total Leads</h4><p>${summary.totalUsers}</p></div>
-                    <div class="report-item"><h4>Finished</h4><p>${summary.totalUsersFinished}</p></div>
-                    <div class="report-item"><h4>Replied</h4><p>${convoStats.repliedCount}</p></div>
+                    <div class="report-item"><h4>Rozpoczęte konwersacje</h4><p>${totalConversations}</p></div>
+                    <div class="report-item"><h4>Konwersacje z odpowiedzią</h4><p>${convoStats.repliedCount}</p></div>
                     <div class="report-item"><h4>Reply Rate</h4><p>${replyRate}%</p></div>
-                    <div class="report-item"><h4>Unread Msgs</h4><p>${convoStats.unreadCount}</p></div>
+                    <div class="report-item"><h4>Nieprzeczytane</h4><p>${convoStats.unreadCount}</p></div>`;
+
+                // Display campaign progress stats
+                reportSummaryDiv.innerHTML = `<p><strong>Summary for ${campaigns.length} campaigns</strong></p>`;
+                reportProgressDetailsDiv.innerHTML = `
+                    <div class="report-item"><h4>Total Leads</h4><p>${summary.totalUsers}</p></div>
                     <div class="report-item"><h4>In Progress</h4><p>${summary.totalUsersInProgress}</p></div>
                     <div class="report-item"><h4>Pending</h4><p>${summary.totalUsersPending}</p></div>
+                    <div class="report-item"><h4>Finished</h4><p>${summary.totalUsersFinished}</p></div>
                     <div class="report-item"><h4>Failed</h4><p>${summary.totalUsersFailed}</p></div>
                     <div class="report-item"><h4>Excluded</h4><p>${summary.totalUsersExcluded}</p></div>`;
                 reportOutputDiv.style.display = 'block';
@@ -434,9 +451,10 @@
             try {
                 const doc = new jsPDF();
                 doc.setFontSize(18);
-                doc.text("HeyReach Campaign Progress Statistics", 14, 22);
+                doc.text("HeyReach Campaign Report", 14, 22);
 
-                let tableData = [];
+                let conversationTable = [];
+                let progressTable = [];
                 
                 if (selectedValue === 'summary') {
                     const campaigns = getFilteredCampaigns();
@@ -444,15 +462,20 @@
                     
                     const summary = calculateAggregateStats(campaigns);
                     const convoStats = await fetchConversationStats(campaigns.map(c => c.id));
-                    const totalLeads = summary.totalUsers || 0;
-                    const replyRate = totalLeads > 0 ? `${((convoStats.repliedCount / totalLeads) * 100).toFixed(1)}%` : 'N/A';
 
-                    tableData = [
-                        ['Total Leads', summary.totalUsers], ['Finished', summary.totalUsersFinished],
-                        ['Replied', convoStats.repliedCount], ['Reply Rate', replyRate],
-                        ['Unread Msgs', convoStats.unreadCount], ['In Progress', summary.totalUsersInProgress],
-                        ['Pending', summary.totalUsersPending], ['Failed', summary.totalUsersFailed],
-                        ['Excluded', summary.totalUsersExcluded]
+                    const totalConversations = convoStats.totalConversations;
+                    const replyRate = totalConversations > 0 ? `${((convoStats.repliedCount / totalConversations) * 100).toFixed(1)}%` : 'N/A';
+                    
+                    conversationTable = [
+                        ['Rozpoczęte konwersacje', totalConversations],
+                        ['Konwersacje z odpowiedzią', convoStats.repliedCount],
+                        ['Reply Rate', replyRate],
+                        ['Nieprzeczytane', convoStats.unreadCount]
+                    ];
+                    progressTable = [
+                        ['Total Leads', summary.totalUsers], ['In Progress', summary.totalUsersInProgress],
+                        ['Pending', summary.totalUsersPending], ['Finished', summary.totalUsersFinished],
+                        ['Failed', summary.totalUsersFailed], ['Excluded', summary.totalUsersExcluded]
                     ];
                 } else {
                     const campaign = allCampaigns.find(c => c.id === parseInt(selectedValue));
@@ -461,28 +484,42 @@
                     
                     const stats = campaign.progressStats;
                     const convoStats = await fetchConversationStats([campaign.id]);
-                    const totalLeads = stats.totalUsers || 0;
-                    const replyRate = totalLeads > 0 ? `${((convoStats.repliedCount / totalLeads) * 100).toFixed(1)}%` : 'N/A';
+
+                    const totalConversations = convoStats.totalConversations;
+                    const replyRate = totalConversations > 0 ? `${((convoStats.repliedCount / totalConversations) * 100).toFixed(1)}%` : 'N/A';
                     
                     if (stats) {
-                         tableData = [
-                            ['Total Leads', stats.totalUsers], ['Finished', stats.totalUsersFinished],
-                            ['Replied', convoStats.repliedCount], ['Reply Rate', replyRate],
-                            ['Unread Msgs', convoStats.unreadCount], ['In Progress', stats.totalUsersInProgress],
-                            ['Pending', stats.totalUsersPending], ['Failed', stats.totalUsersFailed],
-                            ['Excluded', stats.totalUsersExcluded]
+                        conversationTable = [
+                           ['Rozpoczęte konwersacje', totalConversations],
+                           ['Konwersacje z odpowiedzią', convoStats.repliedCount],
+                           ['Reply Rate', replyRate],
+                           ['Nieprzeczytane', convoStats.unreadCount]
+                        ];
+                        progressTable = [
+                            ['Total Leads', stats.totalUsers], ['In Progress', stats.totalUsersInProgress],
+                            ['Pending', stats.totalUsersPending], ['Finished', stats.totalUsersFinished],
+                            ['Failed', stats.totalUsersFailed], ['Excluded', stats.totalUsersExcluded]
                         ];
                     }
                 }
                 
+                doc.setFontSize(14);
+                doc.text("Conversation Statistics", 14, doc.lastAutoTable.finalY + 15);
                 doc.autoTable({
-                    startY: doc.lastAutoTable.finalY + 10,
-                    head: [['Metric', 'Value']],
-                    body: tableData,
-                    theme: 'grid',
-                    headStyles: { fillColor: [13, 110, 253] }
+                    startY: doc.lastAutoTable.finalY + 18,
+                    head: [['Metric', 'Value']], body: conversationTable,
+                    theme: 'grid', headStyles: { fillColor: [13, 110, 253] }
                 });
-                doc.save(`heyreach-stats-${selectedValue}.pdf`);
+
+                doc.setFontSize(14);
+                doc.text("Overall Campaign Progress", 14, doc.lastAutoTable.finalY + 15);
+                doc.autoTable({
+                    startY: doc.lastAutoTable.finalY + 18,
+                    head: [['Metric', 'Value']], body: progressTable,
+                    theme: 'grid', headStyles: { fillColor: [13, 110, 253] }
+                });
+
+                doc.save(`heyreach-report-${selectedValue}.pdf`);
             } catch (error) {
                 console.error("PDF Generation Error:", error);
                 alert(`Could not generate PDF: ${error.message}`);
